@@ -9,7 +9,7 @@ The Engine is designed to be utilized through an IPython console. The easiest wa
 
 After installation of EPD, the `pandas` library will need to be upgraded to at least [Version 0.90](http://pandas.pydata.org/).
 
-From the IPython console, navigate to the source code folder:
+From the IPython console, navigate to the source code folder and run:
 
 `run -t SimpleBuildingEngine.py`
 
