@@ -14,32 +14,18 @@ print 'INITIALIZATION'
 
 # Specify start and end datetime and timestep length
 Simstart = datetime.datetime(2012,01,01,00)
-Simend = datetime.datetime(2012,01,10,23)
+Simend = datetime.datetime(2012,12,10,23)
 timesteplength = datetime.timedelta(hours=1)
 SimLength = Simend - Simstart
 NumOfTimesteps = int(SimLength.total_seconds() / timesteplength.total_seconds())
 
 print 'Initializing Variables'
-"""
-T_i - Intial Temp
-T_s - Temp
-T_m - Temp
-T_es - Temp
-T_em - Temp
-T_op - Temp
-T_rm - Temp
-I_sol_gl - Temp
-I_sol_lopw - Insolation
-I_sol_hopw - Insolation
-I_sol_fr -
-I_sol_rf -
-I_ir_h -
-w_out_data - Humidity Ratio
-"""
 SimDataColumns = ['T_i','T_s','T_es','T_em','T_op','T_rm','I_sol_gl','I_sol_lopw','I_sol_hopw',
                   'I_sol_fr','I_sol_rf','I_ir_h','w_out_data','I_th_cs','I_th_cs2','T_e','P_e','T_inf','w_e','w_inf',
                   'v_e','rho_e','T_ve','w_ve','Q_dot_sl', 'Q_dot_sh', 'Q_dot_s_d_tot', 'Q_dot_svl_tot', 'I_tot_w', 
-                  'I_tr_tot', 'Q_dot_IR_l_tot', 'Q_dot_IR_h_tot', 'Q_dot_sol_l_tot', 'Q_dot_sol_h_tot', 'Q_dot_sol_gl_tot']
+                  'I_tr_tot', 'Q_dot_IR_l_tot', 'Q_dot_IR_h_tot', 'Q_dot_sol_l_tot', 'Q_dot_sol_h_tot',
+                  'Q_dot_sol_gl_tot','Q_dot_hc_un', 'Q_dot_sys', 'T_m', 'T_i_0','Q_dot_heat','Q_dot_cool',
+                  'Q_dot_heat_stat']
 Timestamplist = [(Simstart + x*timesteplength) for x in range(0,NumOfTimesteps)]
 
 #Creates a pandas dataframe with a timestamp index. Input and Output data will be pulled and pushed to this dataframe
@@ -95,16 +81,6 @@ I_ir_cs = -100#Clear sky to actual global radiation ratio
 I_ir_cc=-45
 J_cs = 1
 J_cc = 0.354
-"""
-##Outdoor conditions
-#T_out_data = xlsread(mstring('BESTTEST_DATA.xls'), mstring('D3:D8763'))
-#P_out_data = xlsread(mstring('BESTTEST_DATA.xls'), mstring('H3:H8763'))
-#T_wb_out_data = xlsread(mstring('BESTTEST_DATA.xls'), mstring('E3:E8763'))
-#RH_out_data = xlsread(mstring('BESTTEST_DATA.xls'), mstring('G3:G8763'))
-#I_glob_data = xlsread(mstring('BESTTEST_DATA.xls'), mstring('L3:L8763'))
-#I_diff_data = xlsread(mstring('BESTTEST_DATA.xls'), mstring('N3:N8763'))
-#I_dir_n_data = xlsread(mstring('BESTTEST_DATA.xls'), mstring('M3:M8763'))
-"""
 
 #Load the weather data from the specified weather file. The labels in this imported file will need to be consistent
 #for the import to work properly with the rest of the code
@@ -184,6 +160,9 @@ SimCurrentTimestamp = Simstart
 CurrSimIndex = 0
 
 while SimCurrentTimestamp < Simend:
+    if SimCurrentTimestamp == datetime.datetime(2012,01,01,00): print "Jan Sim Start"
+    if SimCurrentTimestamp == datetime.datetime(2012,07,01,00): print "July Sim Start"
+    if SimCurrentTimestamp == datetime.datetime(2012,12,01,00): print "Dec Sim Start"
     #    print 'Current Sim Timestamp is '+ Sim.index[CurrSimIndex].isoformat()
     #for tau in mslice[tau_1:tau_2]:
 
@@ -342,17 +321,29 @@ while SimCurrentTimestamp < Simend:
 #    T_m_i = T_m_f
 #    #[Q_dot_m_tot,T_m(tau),T_s(tau),T_i(tau),T_op,T_rm,T_m_f ] = TEMP( zero,h_ci,h_rs,T_em(tau),T_es(tau),
 #    # T_ve_sup,H_ve,H_tr_is,H_tr_es,H_tr_ms,H_tr_em,C_m,Q_dot_i,Q_dot_s,Q_dot_m,T_m_i );
-#
 #    [Q_dot_hc_un(tau), Q_dot_sys(tau), T_m(tau), T_s(tau), T_i(tau), T_i_0(tau), T_m_f] = DEMAND(T_i_set_h, T_i_set_c,
 #        f_sa, A_gl_t, A_t, A_fl, A_m, f_occ_c, Q_dot_occ, f_appl_c, Q_dot_appl, f_light_c, Q_dot_light, f_proc_c,
 #        Q_dot_proc, Q_dot_th_recov, f_h_c, f_c_c, H_tr_es, h_is, Q_dot_svl_tot(tau), Q_dot_s_d_tot(tau), zero, h_ci,
 #        h_rs, T_em(tau), T_es(tau), T_eq, H_ei, H_tr_is, H_tr_ms, H_tr_em, C_m, T_m_i)
+    T_m_i = T_m_f
+    Sim.Q_dot_hc_un[CurrSimIndex], Sim.Q_dot_sys[CurrSimIndex], Sim.T_m[CurrSimIndex], Sim.T_s[CurrSimIndex], \
+    Sim.T_i[CurrSimIndex],Sim.T_i_0[CurrSimIndex], T_m_f = sbefunctionlib.DEMAND(T_i_set_h, T_i_set_c, f_sa, A_gl_t,
+        A_t, A_fl, A_m, f_occ_c, Q_dot_occ, f_appl_c, Q_dot_appl, f_light_c, Q_dot_light, f_proc_c,
+        Q_dot_proc, Q_dot_th_recov, f_h_c, f_c_c, H_tr_es, h_is, Sim.Q_dot_svl_tot[CurrSimIndex], Sim.Q_dot_s_d_tot[CurrSimIndex],
+        zero, h_ci, h_rs, Sim.T_em[CurrSimIndex], Sim.T_es[CurrSimIndex], T_eq, H_ei, H_tr_is, H_tr_ms, H_tr_em, C_m, T_m_i)
+
 #    #Heating
 #    Q_dot_heat(tau).lvalue = max(0, Q_dot_sys(tau))
 #    #Cooling
 #    Q_dot_cool(tau).lvalue = min(0, Q_dot_sys(tau))
 #    Q_dot_heat_stat(tau).lvalue = max(0, H_tr_op * (20 - T_e(tau)))
-#
+
+    #Heating
+    Sim.Q_dot_heat[CurrSimIndex] = max(0, Sim.Q_dot_sys[CurrSimIndex])
+    #Cooling
+    Sim.Q_dot_cool[CurrSimIndex] = min(0, Sim.Q_dot_sys[CurrSimIndex])
+    Sim.Q_dot_heat_stat[CurrSimIndex] = max(0, H_tr_op * (20 - Sim.T_e[CurrSimIndex]))
+
 #t_end = toc(t_start)
 #print t_end
     SimCurrentTimestamp += timesteplength
@@ -363,8 +354,13 @@ while SimCurrentTimestamp < Simend:
 #I_tot_N_kWhm2 = sum(I_tot_w(mslice[:], 3)) / 1000
 #I_tot_E_kWhm2 = sum(I_tot_w(mslice[:], 4)) / 1000
 #I_tot_H_kWhm2 = sum(I_tot_w(mslice[:], 5)) / 1000
-#
-#I_tr_kWhm2 = sum(I_tr_tot) / 1000
+
+I_tot_S_kWhm2 = sum([x[0] for x in Sim.I_tot_w]) / 1000
+I_tot_W_kWhm2 = sum([x[1] for x in Sim.I_tot_w]) / 1000
+I_tot_N_kWhm2 = sum([x[2] for x in Sim.I_tot_w]) / 1000
+I_tot_E_kWhm2 = sum([x[3] for x in Sim.I_tot_w]) / 1000
+I_tot_H_kWhm2 = sum([x[4] for x in Sim.I_tot_w]) / 1000
+I_tr_kWhm2 = sum(sum(Sim.I_tot_w)) / 1000
 #
 #I_tot_S_5march = I_tot_w(mslice[1513:1536], 1)
 #I_tot_W_5march = I_tot_w(mslice[1513:1536], 2)
@@ -381,3 +377,7 @@ while SimCurrentTimestamp < Simend:
 #Q_cool_kWhyr = -sum(Q_dot_cool) / 1000; print Q_cool_kWhyr
 #Q_dot_h_kW = max(Q_dot_heat(mslice[12:8760])) / 1000; print Q_dot_h_kW
 #Q_dot_c_kW = -min(Q_dot_cool) / 1000; print Q_dot_c_kW
+
+Output = {'Heating':Sim.Q_dot_heat,'Cooling':Sim.Q_dot_cool}
+Outputframe=pd.DataFrame(Output)
+Outputframe.plot(subplots=True)

@@ -1176,3 +1176,121 @@ def TEMP_OUT(error=None, zero=None, Q_dot_sl=None, Q_dot_sh=None, T_e=None, H_tr
         #T_em=T_e+Q_dot_sh/(H_tr_em+H_tr_ms+zero);
         T_em = T_e + Q_dot_sh / (h_e_h * A_hopw_t + zero)
     return T_es, T_em
+
+def TEMP(zero=None, h_ci=None, h_rs=None, T_em=None, T_es=None, T_ve_sup=None, H_ve=None, H_tr_is=None, H_tr_es=None,
+         H_tr_ms=None, H_tr_em=None, C_m=None, Q_dot_i=None, Q_dot_s=None, Q_dot_m=None, T_m_i=None):
+    #ISO 13790: Determination of the air and operative temperatures for a
+    #given value of Q_dot_hc
+    H_tr_1 = 1 / (1 / (H_ve + zero) + 1 / (H_tr_is + zero))
+    H_tr_2 = H_tr_1 + H_tr_es
+    H_tr_3 = 1 / (1 / H_tr_2 + 1 / H_tr_ms + zero)
+    #Total mass node flow rate
+    Q_dot_m_tot = Q_dot_m + H_tr_em * T_em + H_tr_3 * (Q_dot_s + H_tr_es * T_es + H_tr_1 * (Q_dot_i / (H_ve + zero) +
+                                                                                            T_ve_sup)) / H_tr_2
+    #Final thermal mass temperature (Euler integration method)
+    T_m_f = (T_m_i * (C_m / 3600 - 1 / 2 * (H_tr_3 + H_tr_em)) + Q_dot_m_tot) / (C_m / 3600 + 1 / 2 * (H_tr_3 + H_tr_em))
+    #Average value mass temperature
+    T_m = (T_m_f + T_m_i) / 2
+    #Central node temperature (mean of indoor air and radiant temperatures)
+    T_s = (H_tr_ms * T_m + Q_dot_s + H_tr_es * T_es + H_tr_1 * (T_ve_sup + Q_dot_i / (H_ve + zero))) / (H_tr_ms +
+                                                                                                        H_tr_es + H_tr_1)
+    #Air indoor temperature
+    T_i = (H_tr_is * T_s + H_ve * T_ve_sup + Q_dot_i) / (H_tr_is + H_ve + zero)
+    #Operative temperature
+    T_op = 0.5 * (1 + h_ci / h_rs) * T_s + (1 - 0.5 * (1 + h_ci / h_rs)) * T_i
+    #Mean radiant temperature
+    T_rm = 2 * T_op - T_i
+    return Q_dot_m_tot, T_m, T_s, T_i, T_op, T_rm, T_m_f
+
+def HEATGAINS(f_sa=None, A_gl=None, A_t=None, A_m=None, Q_dot_sys=None, f_occ_c=None, Q_dot_occ=None, f_appl_c=None,
+              Q_dot_appl=None, f_light_c=None, Q_dot_light=None, f_proc_c=None, Q_dot_proc=None, Q_dot_th_recov=None,
+              f_h_c=None, f_c_c=None, H_tr_es=None, h_is=None, Q_dot_svl_tot=None, Q_dot_s_d_tot=None):
+
+    #Heat flow rate due to internal heat gains
+    #Q_dot_occ: Sensible heat flow rate from occupants
+    #Q_dot_appl: Sensible heat flow rate from electrical appliances
+    #Q_dot_light: Sensible heat flow rate from lighting
+    #Q_dot_proc: Sensible heat flow rate from process
+    #Q_dot_proc: Sensible heat flow rate from processes
+    #Radiative/Convective split of internal heat gains
+
+    #Radiative/Convective split of heating/cooling power
+    Q_dot_h = max(0, Q_dot_sys)
+    Q_dot_c = min(0, Q_dot_sys)
+    Q_dot_h_c = f_h_c * Q_dot_h
+    Q_dot_h_r = (1 - f_h_c) * Q_dot_h
+    Q_dot_c_c = f_c_c * Q_dot_c
+    Q_dot_c_r = (1 - f_c_c) * Q_dot_c
+    Q_dot_sys_c = Q_dot_h_c + Q_dot_c_c
+    Q_dot_sys_r = Q_dot_h_r + Q_dot_c_r
+
+    #Parts of the internal radiative gains to s and m nodes
+    P_rs = (A_t - A_m - H_tr_es / h_is) / A_t
+    P_rm = A_m / A_t
+    P_rsd = (A_t - A_m - A_gl - H_tr_es / h_is) / (A_t - A_gl)
+    P_rmd = A_m / (A_t - A_gl)
+
+    # At node i:
+    Q_dot_int_c = f_occ_c * Q_dot_occ + f_appl_c * Q_dot_appl + f_light_c * Q_dot_light + f_proc_c * Q_dot_proc + Q_dot_th_recov
+    #Q_dot_recov: Recoverable losses from HVAC equipments (auxiliary
+    #components: pumps, fans, electronics)
+
+    Q_dot_i = Q_dot_svl_tot + Q_dot_int_c + Q_dot_sys_c + f_sa * Q_dot_s_d_tot
+
+    # At node s:
+    Q_dot_int_r = (1 - f_occ_c) * Q_dot_occ + (1 - f_appl_c) * Q_dot_appl + (1 - f_light_c) * Q_dot_light + (1 - f_proc_c) * Q_dot_proc
+    Q_dot_s = P_rs * (Q_dot_int_r + Q_dot_sys_r) + P_rsd * (1 - f_sa) * Q_dot_s_d_tot
+
+    # At node m
+    Q_dot_m = P_rm * (Q_dot_int_r + Q_dot_sys_r) + P_rmd * (1 - f_sa) * Q_dot_s_d_tot
+    return Q_dot_i, Q_dot_m, Q_dot_s
+
+def DEMAND(T_i_set_h=None, T_i_set_c=None, f_sa=None, A_gl=None, A_t=None, A_fl=None, A_m=None, f_occ_c=None,
+           Q_dot_occ=None, f_appl_c=None, Q_dot_appl=None, f_light_c=None, Q_dot_light=None, f_proc_c=None,
+           Q_dot_proc=None, Q_dot_th_recov=None, f_h_c=None, f_c_c=None, H_tr_es=None, h_is=None, Q_dot_svl_tot=None,
+           Q_dot_s_d_tot=None, zero=None, h_ci=None, h_rs=None, T_em=None, T_es=None, T_ve_sup=None, H_ve=None,
+           H_tr_is=None, H_tr_ms=None, H_tr_em=None, C_m=None, T_m_i=None):
+    #ISO 13790 Calculation Procedure
+    #Step 1: Check if cooling or heating is needed
+    Q_dot_sys_0 = A_fl * 0
+    Q_dot_i_0, Q_dot_m_0, Q_dot_s_0 = HEATGAINS(f_sa, A_gl, A_t, A_m, Q_dot_sys_0, f_occ_c, Q_dot_occ, f_appl_c,
+        Q_dot_appl, f_light_c, Q_dot_light, f_proc_c, Q_dot_proc, Q_dot_th_recov, f_h_c, f_c_c, H_tr_es, h_is,
+        Q_dot_svl_tot, Q_dot_s_d_tot)
+    Q_dot_m_tot_0, T_m_0, T_s_0, T_i_0, T_op_0, T_rm_0, T_m_f0 = TEMP(zero, h_ci, h_rs, T_em, T_es, T_ve_sup,
+        H_ve, H_tr_is, H_tr_es, H_tr_ms, H_tr_em, C_m, Q_dot_i_0, Q_dot_s_0, Q_dot_m_0, T_m_i)
+
+    if (T_i_set_h <= T_i_0) and (T_i_0 <= T_i_set_c):
+        #No heating or cooling is required. No further calculations are needed
+        Q_dot_hc_un = 0
+        T_i_set = T_i_set_h
+        mode = 0
+        k = 0
+
+    else:
+        #Step2: Choose the set point and calculate the heating or cooling need
+        if T_i_0 > T_i_set_c:
+            T_i_set = T_i_set_c
+            mode = 2
+        else:
+            T_i_set = T_i_set_h
+            mode = 1
+        #Running simulation with a heating power of 10 W/m^2
+        Q_dot_sys_10 = A_fl * 10
+        [Q_dot_i_10, Q_dot_m_10, Q_dot_s_10] = HEATGAINS(f_sa, A_gl, A_t, A_m, Q_dot_sys_10, f_occ_c, Q_dot_occ,
+            f_appl_c, Q_dot_appl, f_light_c, Q_dot_light, f_proc_c, Q_dot_proc, Q_dot_th_recov, f_h_c, f_c_c, H_tr_es,
+            h_is, Q_dot_svl_tot, Q_dot_s_d_tot)
+        [Q_dot_m_tot_10, T_m_10, T_s_10, T_i_10, T_op_10, T_rm_10, T_m_f10] = TEMP(zero, h_ci, h_rs, T_em, T_es,
+            T_ve_sup, H_ve, H_tr_is, H_tr_es, H_tr_ms, H_tr_em, C_m, Q_dot_i_10, Q_dot_s_10, Q_dot_m_10, T_m_i)
+        #Calculate unlimited heating or cooling need to obtain the set point requirement
+        Q_dot_hc_un = Q_dot_sys_10 * (T_i_set - T_i_0) / (T_i_10 - T_i_0)
+        #hypothesis: The resolution scheme is such that t_i is a linear function of Q_dot_hc.
+
+    Q_dot_sys = Q_dot_hc_un
+
+    Q_dot_i, Q_dot_m, Q_dot_s = HEATGAINS(f_sa, A_gl, A_t, A_m, Q_dot_sys, f_occ_c, Q_dot_occ, f_appl_c,
+        Q_dot_appl, f_light_c, Q_dot_light, f_proc_c, Q_dot_proc, Q_dot_th_recov, f_h_c, f_c_c, H_tr_es,
+        h_is, Q_dot_svl_tot, Q_dot_s_d_tot)
+    Q_dot_m_tot, T_m, T_s, T_i, T_op, T_rm, T_m_f = TEMP(zero, h_ci, h_rs, T_em, T_es, T_ve_sup, H_ve, H_tr_is,
+        H_tr_es, H_tr_ms, H_tr_em, C_m, Q_dot_i, Q_dot_s, Q_dot_m, T_m_i)
+
+    return Q_dot_hc_un, Q_dot_sys, T_m, T_s, T_i, T_i_0, T_m_f
