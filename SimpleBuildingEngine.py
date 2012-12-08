@@ -33,10 +33,6 @@ Sim = pd.DataFrame(columns=SimDataColumns,index=Timestamplist)
 
 #DATA
 #1. MISCELLANOUS
-#Dtau = 1#en h =>15 min= 0.25 inverse of the number of timesteps per hour
-#tau_1 = 1
-#tau_2 = 365 * 24 / Dtau
-
 T_m_f = -10
 T_m_fd = T_m_f
 
@@ -56,7 +52,7 @@ H_fg = 2257 * 1000#J/kg
 Lat = 39.8
 Long = 104.9
 Long_st = 7 * 15
-#
+
 #3. CLIMATE
 #Rating conditions
 print 'Loading Weather Design Data'
@@ -118,7 +114,6 @@ f_sg22 = 0#part of long wave solar gains
 #due to solar transmission are supposed to be purely convective
 #with solar shadings, while the factor f_sa does a ponderation
 #between convection and radiation when they are no shadings.
-
 #Heat transfer coefficients (U values)
 #Convection, radiation
 h_e_h = 29.3#[W/m^2-K] %winter conditions
@@ -164,18 +159,6 @@ while SimCurrentTimestamp < Simend:
     if SimCurrentTimestamp == datetime.datetime(2012,07,01,00): print "July Sim Start"
     if SimCurrentTimestamp == datetime.datetime(2012,12,01,00): print "Dec Sim Start"
     #    print 'Current Sim Timestamp is '+ Sim.index[CurrSimIndex].isoformat()
-    #for tau in mslice[tau_1:tau_2]:
-
-    #    Calculate weather data variables needed for the simulation using functions
-    #    PUT THE FOLLOWING INTO THE SIMULATION
-    #    w_out_data(tau).lvalue = w_t_RH(P_out_data(tau), T_out_data(tau), RH_out_data(tau))
-    #    #Calendar
-    #    [h_d(tau), day(tau), day_week(tau), day_year(tau), hour_week(tau), week(tau), month(tau)] = CALENDAR(zero, tau)
-    #    #Global horizontal clear sky radiation
-    #    [I_th_cs(tau), I_th_cs2(tau)] = CSITH(Lat, Long, Long_st, day_year(tau), tau)
-    #    #Calendar
-    #    n = day(tau)
-    #    h = ceil(tau * Dtau)
 
     #Outside Humidity Ratio
     Sim.w_out_data[CurrSimIndex] = sbefunctionlib.w_t_RH(weatherdata.P_out_data[CurrSimIndex],
@@ -188,38 +171,22 @@ while SimCurrentTimestamp < Simend:
     sbefunctionlib.CSITH(Lat, Long, Long_st, DayOfYear, HourOfYear)
 
     #ventilation - set points- Radiation properties - infiltration - appliances internal gain
-#    [T_i_set_h, T_i_set_c, SHGC_gl_0, epsilon_ir_hopw, epsilon_ir_lopw, epsilon_ir_gl,
-#     alpha_hopw, alpha_lopw, e_solshad, mode_solshad, NL_ext_max, IAC_solshad,
-#     Q_dot_appl, ACH_inf, V_dot_ve] = Btest_cases(Btest, h_d(tau))
     T_i_set_h, T_i_set_c, SHGC_gl_0, epsilon_ir_hopw, epsilon_ir_lopw, epsilon_ir_gl,\
     alpha_hopw, alpha_lopw, e_solshad, mode_solshad, NL_ext_max, IAC_solshad, Q_dot_appl, ACH_inf, V_dot_ve = \
     sbefunctionlib.Btest_cases(Btest, SimCurrentTimestamp.hour)
     V_in = h_cl * A_fl
 
-#    T_e(tau).lvalue = T_out_data(tau)
-#    P_e(tau).lvalue = P_out_data(tau)
-#    T_inf(tau).lvalue = T_e(tau)
-#    w_e(tau).lvalue = w_out_data(tau)
-#    w_inf = w_e(tau)
     Sim.T_e[CurrSimIndex] = weatherdata.T_out_data[CurrSimIndex]
     Sim.P_e[CurrSimIndex]= weatherdata.P_out_data[CurrSimIndex]
     Sim.T_inf[CurrSimIndex]= Sim.T_e[CurrSimIndex]
     Sim.w_e[CurrSimIndex] = Sim.w_out_data[CurrSimIndex]
     Sim.w_inf[CurrSimIndex] = Sim.w_e[CurrSimIndex]
 
-#    #Heat transfer coefficients (H=AU values)
-#    [v_e(tau)] = DRYAIRPROP(T_e(tau), P_e(tau))
-#    rho_e(tau).lvalue = 1 / v_e(tau)
+    #Heat transfer coefficients (H=AU values)
     Sim.v_e[CurrSimIndex] = sbefunctionlib.DRYAIRPROP(Sim.T_e[CurrSimIndex], Sim.P_e[CurrSimIndex])
     Sim.rho_e[CurrSimIndex] = 1 / Sim.v_e[CurrSimIndex]
-#
-#    #Infiltrations
-#    T_inf = T_e(tau)
-#    w_inf = w_e(tau)
-#    rho_inf = rho_e(tau)
-#    V_dot_inf = ACH_inf * V_in * 1 / 3600
-#    h_inf = h_t_w(c_a, c_v, H_fg, T_inf, w_inf)
-#    m_dot_inf = V_dot_inf * rho_inf
+
+    #Infiltrations
     T_inf = Sim.T_e[CurrSimIndex]
     w_inf = Sim.w_e[CurrSimIndex]
     rho_inf = Sim.rho_e[CurrSimIndex]
@@ -227,13 +194,7 @@ while SimCurrentTimestamp < Simend:
     h_inf = sbefunctionlib.h_t_w(c_a, c_v, H_fg, T_inf, w_inf)
     m_dot_inf = V_dot_inf * rho_inf
 
-#    # Ventilation
-#    T_ve(tau).lvalue = T_e(tau)
-#    w_ve(tau).lvalue = w_e(tau)
-#    [v_ve] = DRYAIRPROP(T_ve(tau), P_e(tau))
-#    h_ve = h_t_w(c_a, c_v, H_fg, T_ve(tau), w_ve(tau))
-#    rho_ve = 1 / v_ve
-#    m_dot_ve = V_dot_ve * rho_ve
+    # Ventilation
     Sim.T_ve[CurrSimIndex] = Sim.T_e[CurrSimIndex]
     Sim.w_ve[CurrSimIndex] = Sim.w_e[CurrSimIndex]
     v_ve = sbefunctionlib.DRYAIRPROP(Sim.T_ve[CurrSimIndex], Sim.P_e[CurrSimIndex])
@@ -241,55 +202,35 @@ while SimCurrentTimestamp < Simend:
     rho_ve = 1 / v_ve
     m_dot_ve = V_dot_ve * rho_ve
 
-#    #Total supply(equivalent) flow rate
-#    m_dot_eq = m_dot_ve + m_dot_inf
-#    w_eq = (m_dot_ve * w_ve(tau) + m_dot_inf * w_inf) / (m_dot_eq + zero)
-#    h_eq = (m_dot_ve * h_ve + m_dot_inf * h_inf) / (m_dot_eq + zero)
-#    T_eq = (h_eq - H_fg * w_eq) / (c_a + c_v * w_eq)
-#    H_ei = m_dot_eq * (c_a + c_v * w_eq)
+    #Total supply(equivalent) flow rate
     m_dot_eq = m_dot_ve + m_dot_inf
     w_eq = (m_dot_ve * Sim.w_ve[CurrSimIndex] + m_dot_inf * w_inf) / (m_dot_eq + zero)
     h_eq = (m_dot_ve * h_ve + m_dot_inf * h_inf) / (m_dot_eq + zero)
     T_eq = (h_eq - H_fg * w_eq) / (c_a + c_v * w_eq)
     H_ei = m_dot_eq * (c_a + c_v * w_eq)
 
-#    # Light walls
-#    H_tr_es = sum(A_gl *elmul* U_gl + A_lopw *elmul* U_lopw + A_fr_t *elmul* U_fr)
+    # Light walls
     H_tr_es = sum(A_gl * U_gl + A_lopw * U_lopw + A_fr_t * U_fr)
 
-#    # Massive walls
-#    H_tr_is = A_t / (1 / h_ci - 1 / h_is)
-#    H_tr_ms = h_is * A_m
-#    H_tr_op = sum(A_hopw *elmul* U_hopw)
-#    H_tr_em = 1 / (1 / H_tr_op - 1 / H_tr_ms)
+    # Massive walls
     H_tr_is = A_t / (1 / h_ci - 1 / h_is)
     H_tr_ms = h_is * A_m
     H_tr_op = sum(A_hopw * U_hopw)
     H_tr_em = 1 / (1 / H_tr_op - 1 / H_tr_ms)
 
-#    # Solar gains
-#    #Irradiation
-#    I_glob_h = I_glob_data(tau)
-#    I_diff_h = I_diff_data(tau)
+    # Solar gains
+    #Irradiation
     I_glob_h = weatherdata.I_glob_data[CurrSimIndex]
     I_diff_h = weatherdata.I_diff_data[CurrSimIndex]
 
-#    #Infrared radiation
-#    tau_h_1 = tau_1
-#    tau_h_2 = tau_2 * Dtau
-#    [I_ir_h(tau)] = IR_horiz(I_ir_cs, I_ir_cc, J_cs, J_cc, I_glob_data, I_th_cs, h, tau_h_1, tau_h_2)
+    #Infrared radiation
     tau_h_1 = Simstart.hour #First hour of simulation?
     tau_h_2 = NumOfTimesteps-1
 #    tau_h_2 = Simend.hour #Last hour of simulation?
-    Sim.I_ir_h[CurrSimIndex] = sbefunctionlib.IR_horiz(I_ir_cs, I_ir_cc, J_cs, J_cc, weatherdata.I_glob_data, Sim.I_th_cs, HourOfYear, tau_h_1, tau_h_2)
+    Sim.I_ir_h[CurrSimIndex] = sbefunctionlib.IR_horiz(I_ir_cs, I_ir_cc, J_cs, J_cc, weatherdata.I_glob_data,
+        Sim.I_th_cs, HourOfYear, tau_h_1, tau_h_2)
 
     #Calculate solar gains
-#    [Q_dot_sl(tau), Q_dot_sh(tau), Q_dot_s_d_tot(tau), Q_dot_svl_tot(tau), I_tot_w(tau, mslice[:]), I_tr_tot(tau),
-#     Q_dot_IR_l_tot(tau), Q_dot_IR_h_tot(tau), Q_dot_sol_l_tot(tau), Q_dot_sol_h_tot(tau), Q_dot_sol_gl_tot(tau)] = \
-#    SOLARGAINS(Lat, Long, Long_st, albedo, n_walls, ori, SHGC_gl_0, p_SHGC, f_sg11, f_sg12, f_sg21, f_sg22, f_hemis,
-#        A_hopw, A_lopw, A_gl, surf_az, slope, f_low_dir, f_low_diff, zero, alpha_hopw, alpha_lopw, e_solshad,
-#        mode_solshad, IAC_solshad, NL_ext_max, n, h, I_glob_h, I_diff_h, I_ir_h(tau), epsilon_ir_lopw, epsilon_ir_gl,
-#        epsilon_ir_hopw, U_lopw, U_gl, U_hopw, h_e_l, h_e_h)
     Sim.Q_dot_sl[CurrSimIndex], Sim.Q_dot_sh[CurrSimIndex], Sim.Q_dot_s_d_tot[CurrSimIndex], Sim.Q_dot_svl_tot[CurrSimIndex],\
     Sim.I_tot_w[CurrSimIndex], Sim.I_tr_tot[CurrSimIndex], Sim.Q_dot_IR_l_tot[CurrSimIndex], Sim.Q_dot_IR_h_tot[CurrSimIndex],\
     Sim.Q_dot_sol_l_tot[CurrSimIndex], Sim.Q_dot_sol_h_tot[CurrSimIndex], Sim.Q_dot_sol_gl_tot[CurrSimIndex] = \
@@ -297,34 +238,28 @@ while SimCurrentTimestamp < Simend:
         A_hopw, A_lopw, A_gl, surf_az, slope, f_low_dir, f_low_diff, zero, alpha_hopw, alpha_lopw, e_solshad,
         mode_solshad, IAC_solshad, NL_ext_max, DayOfYear, HourOfYear, I_glob_h, I_diff_h, Sim.I_ir_h[CurrSimIndex], epsilon_ir_lopw, epsilon_ir_gl,
         epsilon_ir_hopw, U_lopw, U_gl, U_hopw, h_e_l, h_e_h)
-#
-#    # Temperatures at the nodes
-#    # Equivalent outside temperatures
-#    # In this version they are calculated not calculated as in the
-#    # RT2005, but are "real" corrected outdoor temperatureswith (i.e.
-#    # by dividing by A*(h_e_l or h_e_h) only.
-#    [T_es(tau), T_em(tau)] = TEMP_OUT(error, zero, Q_dot_sl(tau), Q_dot_sh(tau), T_e(tau), H_tr_em, H_tr_es, H_tr_ms,
-#        h_e_l, h_e_h, A_lopw_t, A_gl_t, A_fr_t, A_hopw_t)
-#
+
+    # Temperatures at the nodes
+    # Equivalent outside temperatures
+    # In this version they are calculated not calculated as in the
+    # RT2005, but are "real" corrected outdoor temperatureswith (i.e.
+    # by dividing by A*(h_e_l or h_e_h) only.
     Sim.T_es[CurrSimIndex], Sim.T_em[CurrSimIndex] = sbefunctionlib.TEMP_OUT(error, zero, Sim.Q_dot_sl[CurrSimIndex],
         Sim.Q_dot_sh[CurrSimIndex], Sim.T_e[CurrSimIndex], H_tr_em, H_tr_es, H_tr_ms, h_e_l, h_e_h, A_lopw_t, A_gl_t,
         A_fr_t, A_hopw_t)
-#
-#    # T_i, T_s et T_m
-#    # ODE method
-#    #t0=0;
-#    #tf=Dtau*3600;
-#    #T_m_i=T_m_f;
-#    #[T_m_f,T_m(tau),T_s(tau),T_i(tau),T_op(tau),T_rm(tau) ] = TEMPODE(t0,tf,T_m_i,zero,h_ci,h_ri,T_em(tau),T_es(tau),T_ve_sup,H_ve,H_tr_is,H_tr_es,H_tr_ms,H_tr_em,C_m,Q_dot_i,Q_dot_s,Q_dot_m);
-#
-#    #Euler method
-#    T_m_i = T_m_f
-#    #[Q_dot_m_tot,T_m(tau),T_s(tau),T_i(tau),T_op,T_rm,T_m_f ] = TEMP( zero,h_ci,h_rs,T_em(tau),T_es(tau),
-#    # T_ve_sup,H_ve,H_tr_is,H_tr_es,H_tr_ms,H_tr_em,C_m,Q_dot_i,Q_dot_s,Q_dot_m,T_m_i );
-#    [Q_dot_hc_un(tau), Q_dot_sys(tau), T_m(tau), T_s(tau), T_i(tau), T_i_0(tau), T_m_f] = DEMAND(T_i_set_h, T_i_set_c,
-#        f_sa, A_gl_t, A_t, A_fl, A_m, f_occ_c, Q_dot_occ, f_appl_c, Q_dot_appl, f_light_c, Q_dot_light, f_proc_c,
-#        Q_dot_proc, Q_dot_th_recov, f_h_c, f_c_c, H_tr_es, h_is, Q_dot_svl_tot(tau), Q_dot_s_d_tot(tau), zero, h_ci,
-#        h_rs, T_em(tau), T_es(tau), T_eq, H_ei, H_tr_is, H_tr_ms, H_tr_em, C_m, T_m_i)
+
+    # T_i, T_s et T_m
+    # ODE method
+    #t0=0;
+    #tf=Dtau*3600;
+    #T_m_i=T_m_f;
+    #[T_m_f,T_m(tau),T_s(tau),T_i(tau),T_op(tau),T_rm(tau) ] = TEMPODE(t0,tf,T_m_i,zero,h_ci,h_ri,T_em(tau),T_es(tau),
+    # T_ve_sup,H_ve,H_tr_is,H_tr_es,H_tr_ms,H_tr_em,C_m,Q_dot_i,Q_dot_s,Q_dot_m);
+
+    #Euler method
+    T_m_i = T_m_f
+    #[Q_dot_m_tot,T_m(tau),T_s(tau),T_i(tau),T_op,T_rm,T_m_f ] = TEMP( zero,h_ci,h_rs,T_em(tau),T_es(tau),
+    # T_ve_sup,H_ve,H_tr_is,H_tr_es,H_tr_ms,H_tr_em,C_m,Q_dot_i,Q_dot_s,Q_dot_m,T_m_i );
     T_m_i = T_m_f
     Sim.Q_dot_hc_un[CurrSimIndex], Sim.Q_dot_sys[CurrSimIndex], Sim.T_m[CurrSimIndex], Sim.T_s[CurrSimIndex], \
     Sim.T_i[CurrSimIndex],Sim.T_i_0[CurrSimIndex], T_m_f = sbefunctionlib.DEMAND(T_i_set_h, T_i_set_c, f_sa, A_gl_t,
@@ -332,28 +267,15 @@ while SimCurrentTimestamp < Simend:
         Q_dot_proc, Q_dot_th_recov, f_h_c, f_c_c, H_tr_es, h_is, Sim.Q_dot_svl_tot[CurrSimIndex], Sim.Q_dot_s_d_tot[CurrSimIndex],
         zero, h_ci, h_rs, Sim.T_em[CurrSimIndex], Sim.T_es[CurrSimIndex], T_eq, H_ei, H_tr_is, H_tr_ms, H_tr_em, C_m, T_m_i)
 
-#    #Heating
-#    Q_dot_heat(tau).lvalue = max(0, Q_dot_sys(tau))
-#    #Cooling
-#    Q_dot_cool(tau).lvalue = min(0, Q_dot_sys(tau))
-#    Q_dot_heat_stat(tau).lvalue = max(0, H_tr_op * (20 - T_e(tau)))
-
     #Heating
     Sim.Q_dot_heat[CurrSimIndex] = max(0, Sim.Q_dot_sys[CurrSimIndex])
     #Cooling
     Sim.Q_dot_cool[CurrSimIndex] = min(0, Sim.Q_dot_sys[CurrSimIndex])
     Sim.Q_dot_heat_stat[CurrSimIndex] = max(0, H_tr_op * (20 - Sim.T_e[CurrSimIndex]))
 
-#t_end = toc(t_start)
-#print t_end
+    #Simulation counters
     SimCurrentTimestamp += timesteplength
     CurrSimIndex += 1
-
-#I_tot_S_kWhm2 = sum(I_tot_w(mslice[:], 1)) / 1000
-#I_tot_W_kWhm2 = sum(I_tot_w(mslice[:], 2)) / 1000
-#I_tot_N_kWhm2 = sum(I_tot_w(mslice[:], 3)) / 1000
-#I_tot_E_kWhm2 = sum(I_tot_w(mslice[:], 4)) / 1000
-#I_tot_H_kWhm2 = sum(I_tot_w(mslice[:], 5)) / 1000
 
 I_tot_S_kWhm2 = sum([x[0] for x in Sim.I_tot_w]) / 1000
 I_tot_W_kWhm2 = sum([x[1] for x in Sim.I_tot_w]) / 1000

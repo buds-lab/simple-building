@@ -971,21 +971,6 @@ def SOLARGAINS(Lat=None, Long=None, Long_st=None, albedo=None, n_walls=None, ori
     from math import pi,cos
     import pandas as pd
 
-    #OLD ATTEMPT TO CONTAIN SURFACE CALCULATIONS IN LISTS - HAD MESSY INITIALIZATION PROBLEMS
-    #    Q_dot_sol_h, Q_dot_sol_l, Q_dot_sol_gl_dir, Q_dot_sol_gl_hemis, Q_dot_sd_dir, Q_dot_sd_hemis, Q_dot_svl_dir,\
-    #    Q_dot_svl_hemis, I_tot_w, I_hemis_w = [],[],[],[],[],[],[],[],[],[]
-    #
-    #    theta, theta_z, gamma_s, I_tot_w, I_ref_w, I_diff_w, I_dir_w, I_dir_n = [],[],[],[],[],[],[],[]
-    #
-    #    f_shad, NL_ext, I_sol_hopw, I_sol_lopw, SHGC1, SHGC2, SHGC_dir1, SHGC_hemis1, SHGC_dir2, SHGC_hemis2 \
-    #    = [],[],[],[],[],[],[],[],[],[]
-    #
-    #    Sp11_dir, Sp21_dir, Sp31_dir, Sp11_hemis, Sp21_hemis, Sp31_hemis, Sp12_dir, Sp22_dir, SHGC_dir2, Sp32_dir, \
-    #    SHGC_dir2, Sp12_dir, Sp22_dir, Sp12_hemis, SHGC_hemis2, Sp22_hemis, Sp32_hemis = [],[],[],[],[],[],[],[],[],[],[],\
-    #    [],[],[],[],[],[]
-    #
-    #    Q_dot_IR_l, Q_dot_IR_h = {},{}
-
     SurfaceDataFrameLabels = ['Q_dot_sol_h',
                               'I_diff_w',
                               'Q_dot_sol_gl_dir',
@@ -1276,10 +1261,10 @@ def DEMAND(T_i_set_h=None, T_i_set_c=None, f_sa=None, A_gl=None, A_t=None, A_fl=
             mode = 1
         #Running simulation with a heating power of 10 W/m^2
         Q_dot_sys_10 = A_fl * 10
-        [Q_dot_i_10, Q_dot_m_10, Q_dot_s_10] = HEATGAINS(f_sa, A_gl, A_t, A_m, Q_dot_sys_10, f_occ_c, Q_dot_occ,
+        Q_dot_i_10, Q_dot_m_10, Q_dot_s_10 = HEATGAINS(f_sa, A_gl, A_t, A_m, Q_dot_sys_10, f_occ_c, Q_dot_occ,
             f_appl_c, Q_dot_appl, f_light_c, Q_dot_light, f_proc_c, Q_dot_proc, Q_dot_th_recov, f_h_c, f_c_c, H_tr_es,
             h_is, Q_dot_svl_tot, Q_dot_s_d_tot)
-        [Q_dot_m_tot_10, T_m_10, T_s_10, T_i_10, T_op_10, T_rm_10, T_m_f10] = TEMP(zero, h_ci, h_rs, T_em, T_es,
+        Q_dot_m_tot_10, T_m_10, T_s_10, T_i_10, T_op_10, T_rm_10, T_m_f10 = TEMP(zero, h_ci, h_rs, T_em, T_es,
             T_ve_sup, H_ve, H_tr_is, H_tr_es, H_tr_ms, H_tr_em, C_m, Q_dot_i_10, Q_dot_s_10, Q_dot_m_10, T_m_i)
         #Calculate unlimited heating or cooling need to obtain the set point requirement
         Q_dot_hc_un = Q_dot_sys_10 * (T_i_set - T_i_0) / (T_i_10 - T_i_0)
