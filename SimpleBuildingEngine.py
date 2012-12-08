@@ -155,10 +155,12 @@ SimCurrentTimestamp = Simstart
 CurrSimIndex = 0
 
 while SimCurrentTimestamp < Simend:
-    if SimCurrentTimestamp == datetime.datetime(2012,01,01,00): print "Jan Sim Start"
-    if SimCurrentTimestamp == datetime.datetime(2012,07,01,00): print "July Sim Start"
-    if SimCurrentTimestamp == datetime.datetime(2012,12,01,00): print "Dec Sim Start"
-    #    print 'Current Sim Timestamp is '+ Sim.index[CurrSimIndex].isoformat()
+    #Simulation Runtime Flags
+#    if SimCurrentTimestamp == datetime.datetime(2012,01,01,00): print "Jan Sim Start"
+#    if SimCurrentTimestamp == datetime.datetime(2012,07,01,00): print "July Sim Start"
+#    if SimCurrentTimestamp == datetime.datetime(2012,12,01,00): print "Dec Sim Start"
+    if (SimCurrentTimestamp.hour==0) and (SimCurrentTimestamp.day==1):
+        print 'Current Sim Timestamp is '+ Sim.index[CurrSimIndex].isoformat()
 
     #Outside Humidity Ratio
     Sim.w_out_data[CurrSimIndex] = sbefunctionlib.w_t_RH(weatherdata.P_out_data[CurrSimIndex],
